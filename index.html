@@ -1,0 +1,220 @@
+<!--
+Prayer Times Web App
+- Single-file HTML (save as index.html)
+- Uses client-side PrayTimes algorithm to compute prayer times from GPS
+- Features: GPS detection, manual location input, month calendar, dark theme, RU/UZ bilingual UI
+- To host on GitHub Pages: create a repo, add this file as index.html to the repo root, enable Pages (branch: main) -> site will be published
+-->
+
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Время намаза / Намоз вақтлари</title>
+  <style>
+    :root{--bg:#f4f6fb;--card:#ffffff;--text:#111827;--muted:#6b7280}
+    [data-theme="dark"]{--bg:#0b1020;--card:#071022;--text:#e6eef8;--muted:#9aa6bf}
+    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{margin:0;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+    .app{width:100%;max-width:900px}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:18px}
+    h1{font-size:20px;margin:0}
+    .controls{display:flex;gap:8px;align-items:center}
+    .card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 6px 20px rgba(2,6,23,0.06)}
+    .location{display:flex;gap:8px;align-items:center}
+    button,select{padding:8px 10px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);background:transparent}
+    .times{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}
+    .time-row{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.04)}
+    .next{font-weight:700;font-size:18px}
+    .muted{color:var(--muted);font-size:13px}
+    footer{margin-top:12px;display:flex;justify-content:space-between;align-items:center}
+    .calendar{margin-top:12px}
+    .lang-toggle, .theme-toggle{cursor:pointer}
+    @media(max-width:640px){.times{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1 id="title">Время намаза — Намоз вақтлари</h1>
+        <div class="muted" id="subtitle">Определяется по GPS / GPS орқали аниқланади</div>
+      </div>
+      <div class="controls">
+        <select id="methodSelect" title="Calculation method">
+          <option value="MWL">Muslim World League</option>
+          <option value="ISNA">ISNA</option>
+          <option value="Egypt">Egyptian General Authority</option>
+          <option value="Makkah">Umm al-Qura, Makkah</option>
+          <option value="Karachi">University of Islamic Sciences, Karachi</option>
+          <option value="Tehran">Institute of Geophysics, Tehran</option>
+          <option value="Jafari">Shia Ithna-Ansari</option>
+        </select>
+        <button id="gpsBtn">Получить GPS / GPS olish</button>
+        <button id="manualBtn">Ввести вручную / Қўл билан киритиш</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="theme-toggle" id="themeBtn">🌙</button>
+          <button class="lang-toggle" id="langBtn">RU/UZ</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="location" id="locInfo">—</div>
+      <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="next" id="nextPrayer">—</div>
+          <div class="muted" id="countdown">—</div>
+        </div>
+        <div style="text-align:right">
+          <div class="muted" id="todayDate">—</div>
+          <div class="muted" id="timezone">—</div>
+        </div>
+      </div>
+
+      <div class="times" id="timesList">
+        <!-- prayer times injected here -->
+      </div>
+
+      <div class="calendar card" id="calendar">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="muted" id="monthLabel">—</div>
+          <div>
+            <button id="prevMonth">◀</button>
+            <button id="nextMonth">▶</button>
+          </div>
+        </div>
+        <div id="monthTable" style="margin-top:8px"></div>
+      </div>
+
+      <footer>
+        <div class="muted">Сделано в Tashkent — GitHub Pages ready</div>
+        <div class="muted">Azan: <input type="checkbox" id="azanChk"></div>
+      </footer>
+    </div>
+
+    <!-- Manual modal (simple) -->
+    <div id="manualModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);align-items:center;justify-content:center">
+      <div style="background:var(--card);padding:18px;border-radius:12px;max-width:420px;width:100%">
+        <h3 id="manualTitle">Ввести координаты / Координаталарни киритиш</h3>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input id="latInput" placeholder="Latitude" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.06)">
+          <input id="lonInput" placeholder="Longitude" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.06)">
+        </div>
+        <div style="margin-top:8px;display:flex;justify-content:flex-end;gap:8px">
+          <button id="cancelManual">Отмена</button>
+          <button id="saveManual">Сохранить</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+/* ================= PrayTimes.js (compact) ===================
+   Source algorithm adapted from PrayTimes by Hamid Zarrabi-Zadeh
+   (https://praytimes.org). This is a compact implementation for client-side use.
+=============================================================*/
+var PrayTimes=function(){
+var methodParams={
+ MWL:{name:'MWL',fajr:18,isha:17},ISNA:{name:'ISNA',fajr:15,isha:15},Egypt:{name:'Egypt',fajr:19.5,isha:17.5},Makkah:{name:'Makkah',fajr:18.5,isha:'90min'},Karachi:{name:'Karachi',fajr:18,isha:18},Tehran:{name:'Tehran',fajr:17.7,isha:14,maghrib:4.5},Jafari:{name:'Jafari',fajr:16,isha:14}}
+function toRadians(d){return d*Math.PI/180}
+function toDegrees(d){return d*180/Math.PI}
+function fixAngle(a){return a - 360*Math.floor(a/360)}
+function julianDate(year,month,day){if(month<=2){year-=1;month+=12}var A=Math.floor(year/100);var B=2-A+Math.floor(A/4);return Math.floor(365.25*(year+4716))+Math.floor(30.6001*(month+1))+day+B-1524.5}
+function sunPosition(jd){var D=jd-2451545.0;var g=fixAngle(357.529+0.98560028*D);var q=fixAngle(280.459+0.98564736*D);var L=fixAngle(q+1.915*Math.sin(toRadians(g))+0.020*Math.sin(toRadians(2*g)));var e=23.439-0.00000036*D;var RA=toDegrees(Math.atan2(Math.cos(toRadians(e))*Math.sin(toRadians(L)),Math.cos(toRadians(L))))/15;var decl=toDegrees(Math.asin(Math.sin(toRadians(e))*Math.sin(toRadians(L))));var eqt= q/15 - RA; return {decl:decl,eqt:eqt};}
+function hourAngle(height,lat,decl){var term=(Math.sin(toRadians(height))-Math.sin(toRadians(lat))*Math.sin(toRadians(decl)))/(Math.cos(toRadians(lat))*Math.cos(toRadians(decl))); if(term<-1) term=-1; if(term>1) term=1; return toDegrees(Math.acos(term))/15}
+function computeTimes(date,lat,lng,zone,method){var year=date.getFullYear(),month=date.getMonth()+1,day=date.getDate();var jd=julianDate(year,month,day);var t=[];var D=sunPosition(jd);
+ var noon=(12 - D.eqt - lng/15 + zone);
+ // fajr
+ var params=methodParams[method]||methodParams.MWL;
+ var fajrAngle=params.fajr; var ishaAngle=params.isha; var maghrib=params.maghrib;
+ var fajrH=hourAngle(-fajrAngle,lat,D.decl); var ishaH= (typeof ishaAngle==='string' && ishaAngle.endsWith('min'))? (parseFloat(ishaAngle)/60) : hourAngle(-ishaAngle,lat,D.decl);
+ var sunriseH=hourAngle(-0.833,lat,D.decl);
+ var dhuhr=noon; var sunrise=noon - sunriseH; var asr=noon + asrTime(lat,D.decl); var sunset=noon + sunriseH; var maghribT = maghrib? (maghrib===true ? sunset : (typeof maghrib==='number'? sunset+maghrib/60 : sunset)) : sunset;
+ var fajrT = noon - fajrH; var ishaT = (typeof ishaAngle==='string' && ishaAngle.endsWith('min'))? (sunset + parseFloat(ishaAngle)/60) : noon + ishaH;
+ return {fajr:fajrT,sunrise:sunrise,dhuhr:dhuhr,asr:asr,sunset:sunset,maghrib:maghribT,isha:ishaT};}
+function asrTime(lat,decl){var angle=Math.atan(1+Math.tan(Math.abs(toRadians(lat-decl)))); // simplified
+ return toDegrees(Math.acos((Math.sin(angle)-Math.sin(toRadians(lat))*Math.sin(toRadians(decl)))/(Math.cos(toRadians(lat))*Math.cos(toRadians(decl))  )))/15}
+ function floatToTime(t){t = (t + 24) % 24; var h=Math.floor(t); var m=Math.floor((t-h)*60+0.5); if(m>=60){h=(h+1)%24;m=0;} return (h<10?'0'+h:h)+':'+(m<10?'0'+m:m);} 
+ return {getTimes:function(date,coords,zone,method){var ts=computeTimes(date,coords.lat,coords.lng,zone,method);var out={};for(var k in ts) out[k]=floatToTime(ts[k]); return out}} }
+var pray=new PrayTimes();
+
+/* ================= App logic =================== */
+const state={lat:null,lng:null,zone:0,method:'MWL',lang:'ru',azan:false,monthOffset:0}
+const el={gpsBtn:document.getElementById('gpsBtn'),manualBtn:document.getElementById('manualBtn'),locInfo:document.getElementById('locInfo'),timesList:document.getElementById('timesList'),nextPrayer:document.getElementById('nextPrayer'),countdown:document.getElementById('countdown'),todayDate:document.getElementById('todayDate'),timezone:document.getElementById('timezone'),methodSelect:document.getElementById('methodSelect'),langBtn:document.getElementById('langBtn'),themeBtn:document.getElementById('themeBtn'),manualModal:document.getElementById('manualModal'),latInput:document.getElementById('latInput'),lonInput:document.getElementById('lonInput'),saveManual:document.getElementById('saveManual'),cancelManual:document.getElementById('cancelManual'),prevMonth:document.getElementById('prevMonth'),nextMonth:document.getElementById('nextMonth'),monthLabel:document.getElementById('monthLabel'),monthTable:document.getElementById('monthTable'),azanChk:document.getElementById('azanChk')}
+
+function setLang(l){state.lang=l; renderStrings(); renderAll();}
+function t(r,u){ // RU/UZ shorthand
+ const dict={
+  'getting_gps':['Определяем позицию...','GPS aniqlanmoqda...'],
+  'gps_failed':['Не удалось получить GPS','GPS olinmadi'],
+  'manual_title':['Ввести координаты','Координаталарни киритиш'],
+  'next_prayer':['Следующая:','Келаси намоз:']
+ };
+ return dict[r] ? (state.lang==='ru'?dict[r][0]:dict[r][1]) : u;
+}
+
+el.langBtn.onclick=()=>{state.lang=(state.lang==='ru'?'uz':'ru'); setLang(state.lang)}
+el.themeBtn.onclick=()=>{ document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme')==='dark' ? '':'dark'); }
+
+document.getElementById('title').onclick=()=>alert('Сайт времени намаза — готов!');
+
+el.methodSelect.onchange=(e)=>{state.method=e.target.value; renderAll();}
+el.azanChk.onchange=(e)=>{state.azan=e.target.checked}
+
+el.gpsBtn.onclick=()=>{
+ el.locInfo.textContent=t('getting_gps');
+ navigator.geolocation.getCurrentPosition(pos=>{state.lat=pos.coords.latitude;state.lng=pos.coords.longitude;state.zone = -new Date().getTimezoneOffset()/60; renderAll();},err=>{el.locInfo.textContent=t('gps_failed')})
+}
+
+el.manualBtn.onclick=()=>{el.manualModal.style.display='flex';document.getElementById('manualTitle').textContent=t('manual_title')}
+el.cancelManual.onclick=()=>{el.manualModal.style.display='none'}
+el.saveManual.onclick=()=>{const lat=parseFloat(el.latInput.value);const lon=parseFloat(el.lonInput.value);if(!isNaN(lat)&&!isNaN(lon)){state.lat=lat;state.lng=lon;state.zone=-new Date().getTimezoneOffset()/60;el.manualModal.style.display='none';renderAll()} }
+
+function renderStrings(){document.getElementById('subtitle').textContent = state.lang==='ru'?'Определяется по GPS / Можно ввести вручную':'GPS орқали аниқланади / Қўл билан киритиш мумкин'; document.getElementById('manualTitle').textContent = state.lang==='ru'?'Ввести координаты / Координаталарни киритиш':'Координаталарни киритиш / Ввести координаты';}
+
+function renderAll(){ if(state.lat==null){el.locInfo.textContent = state.lang==='ru'?'Координаты не заданы':'Координата ўрнатилмаган'; return;} const coords={lat:state.lat,lng:state.lng}; const today=new Date(); const times=pray.getTimes(today,coords,state.zone,state.method); el.locInfo.innerHTML = (state.lang==='ru'? 'Широта: ':'Кенглик: ')+state.lat.toFixed(4)+', '+(state.lang==='ru'?'Долгота: ':'Узунлик: ')+state.lng.toFixed(4);
+ el.todayDate.textContent = today.toLocaleDateString(state.lang==='ru'?'ru-RU':'uz-UZ',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+ el.timezone.textContent = 'UTC'+(state.zone>=0?'+':'')+state.zone;
+ // render times
+ const order=['fajr','sunrise','dhuhr','asr','maghrib','isha']; const namesRU={'fajr':'Фаджр','sunrise':'Восход','dhuhr':'Зухр','asr':'Аср','maghrib':'Магриб','isha':'Иша'}; const namesUZ={'fajr':'Бомдод','sunrise':'Қуёш','dhuhr':'Пешин','asr':'Аср','maghrib':'Шом','isha':'Хонандалик'};
+ el.timesList.innerHTML=''; order.forEach(k=>{const div=document.createElement('div');div.className='time-row';div.innerHTML='<div>'+ (state.lang==='ru'?namesRU[k]:namesUZ[k]) +'</div><div>'+times[k]+'</div>';el.timesList.appendChild(div)});
+ // next prayer
+ const nowStr = new Date(); const nowH = nowStr.getHours(); const nowM = nowStr.getMinutes(); const nowSeconds = nowH + nowM/60 + nowStr.getSeconds()/3600;
+ let nextKey='isha'; let nextTimeStr=null; for(let k of order){ const [hh,mm]=times[k].split(':').map(Number); const tVal = hh + mm/60; if(tVal>nowSeconds){ nextKey=k; nextTimeStr=times[k]; break; }} el.nextPrayer.textContent = (state.lang==='ru'?t('next_prayer')[0]:t('next_prayer')[1]) + ' ' + (state.lang==='ru'?namesRU[nextKey]:namesUZ[nextKey]) + ' — ' + nextTimeStr;
+ // countdown
+ function updateCountdown(){ const [hh,mm]=times[nextKey].split(':').map(Number); const target=new Date(); target.setHours(hh); target.setMinutes(mm); target.setSeconds(0); if(target<new Date()) target.setDate(target.getDate()+1);
+ const diff=Math.max(0, Math.floor((target - new Date())/1000)); const h=Math.floor(diff/3600); const m=Math.floor((diff%3600)/60); const s=diff%60; el.countdown.textContent = (state.lang==='ru'? 'Осталось: ':'Қолди: ')+ (h+'ч '+m+'м '+s+'с');
+ if(diff<=0 && state.azan){ playAzan(); }
+ }
+ updateCountdown(); setInterval(updateCountdown,1000);
+ renderCalendar(today);
+}
+
+function renderCalendar(baseDate){ const d = new Date(baseDate.getFullYear(), baseDate.getMonth()+state.monthOffset, 1); const month = d.getMonth(); const year = d.getFullYear(); el.monthLabel.textContent = d.toLocaleString(state.lang==='ru'?'ru-RU':'uz-UZ',{month:'long',year:'numeric'});
+ // create simple list of days with prayer times
+ const days = new Date(year,month+1,0).getDate(); let html='<table style="width:100%;border-collapse:collapse"><thead><tr>'; const wd = ['Mo','Tu','We','Th','Fr','Sa','Su']; wd.forEach(w=>html+='<th style="padding:6px;font-size:12px">'+w+'</th>'); html+='</tr></thead><tbody><tr>';
+ // fill blanks
+ let start = new Date(year,month,1).getDay(); start = (start==0?6:start-1); for(let i=0;i<start;i++) html+='<td></td>';
+ for(let day=1;day<=days;day++){ const cur = new Date(year,month,day); const coords={lat:state.lat,lng:state.lng}; const times = pray.getTimes(cur,coords,state.zone,state.method); if((start+day-1)%7==0 && day!=1) html+='</tr><tr>';
+ html+='<td style="padding:6px;border:1px solid rgba(0,0,0,0.03);vertical-align:top;font-size:12px"><div style="font-weight:700">'+day+'</div><div style="font-size:11px;margin-top:6px">'+times.fajr+' | '+times.maghrib+'</div></td>';
+ }
+ html+='</tr></tbody></table>';
+ el.monthTable.innerHTML = html;
+}
+
+el.prevMonth.onclick=()=>{state.monthOffset--; renderAll();}
+el.nextMonth.onclick=()=>{state.monthOffset++; renderAll();}
+
+function playAzan(){ try{ const audio=new Audio('https://cdn.pixabay.com/download/audio/2021/08/09/audio_d6b0d0b5f1.mp3?filename=azan-1-6206.mp3'); audio.play(); }catch(e){console.log('Azan play failed',e);} }
+
+// initial
+setLang('ru');
+// If user wants, try to auto-get location
+if(navigator.geolocation){ navigator.geolocation.getCurrentPosition(pos=>{state.lat=pos.coords.latitude;state.lng=pos.coords.longitude;state.zone=-new Date().getTimezoneOffset()/60; renderAll();},()=>{document.getElementById('locInfo').textContent=t('gps_failed')}); }
+
+</script>
+</body>
+</html>
