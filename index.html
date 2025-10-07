@@ -3,170 +3,263 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Namoz vaqtlari (GPS)</title>
+<title>Namoz Vaqtlari — IMBA</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg-dark-1:#031229;
-    --bg-dark-2:#04243b;
-    --card: rgba(255,255,255,0.04);
-    --text:#e6f7ff;
-    --muted: #9fb6c6;
-    --accent:#00d4b6;
+    --bg1:#031229; --bg2:#04243b; --card:rgba(255,255,255,0.04);
+    --text:#e6f7ff; --muted:#9fb6c6; --accent:#00d4b6; --glass:rgba(255,255,255,0.03);
   }
-  html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Arial;color:var(--text)}
-  body{display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,var(--bg-dark-1),var(--bg-dark-2));overflow:hidden}
-  /* Cunami background: two layered, animated SVG-like waves */
-  .bg{
-    position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;
-    background: radial-gradient(1200px 600px at 10% 10%, rgba(255,255,255,0.02), transparent),
-                radial-gradient(1000px 500px at 90% 80%, rgba(255,255,255,0.01), transparent);
+  [data-theme="light"]{
+    --bg1:#f6fbff; --bg2:#eef6ff; --card:#ffffff; --text:#042434; --muted:#4b6b78; --accent:#0066cc; --glass:rgba(2, 6, 23, 0.03);
   }
-  .wave{
-    position:absolute;left:-30%;width:160%;height:70%;
-    background: linear-gradient(90deg, rgba(0,128,160,0.12), rgba(0,64,120,0.12));
-    bottom: -10%;
-    transform: rotate(-6deg);
-    filter: blur(18px);
-    animation: waveMove 14s linear infinite;
-    opacity:0.9;
-  }
-  .wave.wave2{bottom:-30%;animation-duration:20s;opacity:0.7;transform: rotate(4deg);filter: blur(28px)}
-  @keyframes waveMove{
-    0%{transform: translateX(-5%) rotate(-6deg)}
-    50%{transform: translateX(5%) rotate(-6deg)}
-    100%{transform: translateX(-5%) rotate(-6deg)}
-  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;color:var(--text);background:linear-gradient(180deg,var(--bg1),var(--bg2));-webkit-font-smoothing:antialiased}
+  body{display:flex;align-items:center;justify-content:center;padding:28px}
+  .bg-waves{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .wave{position:absolute;left:-20%;width:140%;height:70%;background:linear-gradient(90deg, rgba(0,128,160,0.12), rgba(0,64,120,0.12));bottom:-20%;transform:rotate(-6deg);filter:blur(28px);animation:wave1 16s ease-in-out infinite;opacity:0.95}
+  .wave.w2{bottom:-40%;animation:wave2 20s ease-in-out infinite;opacity:0.7;filter:blur(36px);transform:rotate(3deg)}
+  .wave.overlay{background:radial-gradient(circle at 20% 20%, rgba(255,255,255,0.02), transparent), radial-gradient(circle at 80% 80%, rgba(255,255,255,0.01), transparent);opacity:0.55}
+  @keyframes wave1{0%{transform:translateX(-6%) rotate(-6deg)}50%{transform:translateX(6%) rotate(-6deg)}100%{transform:translateX(-6%) rotate(-6deg)}}
+  @keyframes wave2{0%{transform:translateX(6%) rotate(3deg)}50%{transform:translateX(-6%) rotate(3deg)}100%{transform:translateX(6%) rotate(3deg)}}
 
-  .app{position:relative;z-index:2;max-width:920px;width:92%;padding:28px;border-radius:16px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));backdrop-filter: blur(6px);box-shadow: 0 10px 40px rgba(0,0,0,0.6)}
-  header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .container{position:relative;z-index:2;width:100%;max-width:980px}
+  .card{background:var(--card);backdrop-filter: blur(8px);border-radius:16px;padding:20px;border:1px solid rgba(255,255,255,0.04);box-shadow:0 18px 40px rgba(2,6,23,0.5)}
+  header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .brand{display:flex;flex-direction:column}
   h1{margin:0;font-size:22px;letter-spacing:0.2px}
-  .subtitle{color:var(--muted);font-size:13px;margin-top:6px}
-  .controls{display:flex;gap:8px;align-items:center}
-  button{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 12px;border-radius:10px;color:var(--text);cursor:pointer}
-  button.cta{background:var(--accent);border:none;color:#042;box-shadow:0 6px 18px rgba(0,212,182,0.12)}
-  .card{margin-top:18px;padding:18px;border-radius:12px;background:var(--card);border:1px solid rgba(255,255,255,0.02)}
-  .loc{font-weight:600;color:var(--accent)}
-  .times{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:12px}
-  .time-row{padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.0));display:flex;flex-direction:column;align-items:flex-start}
-  .time-row .label{font-size:13px;color:var(--muted);margin-bottom:6px}
-  .time-row .value{font-weight:700;font-size:16px}
-  .next-box{display:flex;justify-content:space-between;align-items:center;margin-top:14px;gap:12px}
-  .next-title{font-size:15px;color:var(--muted)}
-  .countdown{font-weight:800;color:var(--accent);font-size:18px}
-  .hint{margin-top:12px;color:var(--muted);font-size:13px}
-  .error{margin-top:12px;color:#ffb3b3;background:rgba(255,0,0,0.04);padding:10px;border-radius:8px}
-  footer{margin-top:14px;color:var(--muted);font-size:12px;text-align:center}
+  .subtitle{font-size:13px;color:var(--muted);margin-top:6px}
+  .actions{display:flex;gap:8px;align-items:center}
+  .btn{padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--text);cursor:pointer}
+  .btn.primary{background:var(--accent);color:#042;box-shadow:0 8px 20px rgba(0,212,182,0.12);border:none}
+  .small{font-size:13px;padding:6px 10px;border-radius:8px}
 
-  /* responsive */
-  @media(max-width:640px){
-    .controls{flex-direction:column;align-items:flex-end}
-    .times{grid-template-columns:1fr}
+  .main-grid{display:grid;grid-template-columns:1fr 360px;gap:14px;margin-top:18px}
+  .left{display:flex;flex-direction:column;gap:12px}
+  .right{display:flex;flex-direction:column;gap:12px}
+
+  .loc{font-weight:700;color:var(--accent)}
+  .hint{font-size:13px;color:var(--muted)}
+  .times-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .prayer-card{border-radius:12px;padding:14px;background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));display:flex;align-items:center;gap:12px;border:1px solid rgba(255,255,255,0.02);transition:transform .25s}
+  .prayer-card:hover{transform:translateY(-6px)}
+  .icon{width:46px;height:46px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));font-weight:700}
+  .pname{font-size:13px;color:var(--muted)}
+  .ptime{font-size:18px;font-weight:800}
+
+  .next-panel{padding:14px;border-radius:12px;background:linear-gradient(90deg, rgba(0,0,0,0.04), rgba(0,0,0,0.02));display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid rgba(255,255,255,0.02)}
+  .next-left{display:flex;flex-direction:column;gap:6px}
+  .next-title{font-size:13px;color:var(--muted)}
+  .countdown{font-size:20px;font-weight:900;color:var(--accent)}
+
+  .clock{font-size:13px;color:var(--muted)}
+  .controls-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+  .right .card-small{padding:12px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.02)}
+  .toggle{display:flex;align-items:center;gap:8px}
+  .switch{width:46px;height:26px;background:rgba(255,255,255,0.06);border-radius:20px;position:relative;cursor:pointer}
+  .knob{width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;left:4px;top:3px;transition:left .22s}
+  .switch.on{background:var(--accent)}
+  .switch.on .knob{left:22px}
+
+  footer{margin-top:14px;color:var(--muted);text-align:center;font-size:13px}
+
+  @media(max-width:980px){
+    .main-grid{grid-template-columns:1fr}
+    .right{order:2}
   }
 </style>
 </head>
 <body>
-  <div class="bg" aria-hidden="true">
+  <div class="bg-waves" aria-hidden="true">
     <div class="wave"></div>
-    <div class="wave wave2"></div>
+    <div class="wave w2 overlay"></div>
   </div>
 
-  <div class="app" role="main" aria-live="polite">
-    <header>
-      <div>
-        <h1>Namoz vaqtlari</h1>
-        <div class="subtitle">Faoliyat: GPS orqali joylashuv — iltimos brauzer ruxsatlarini yoqing</div>
-      </div>
-      <div class="controls">
-        <button id="tryBtn" class="cta">GPS orqali aniqlash</button>
-        <button id="howBtn">Qanday ruxsat berish?</button>
-      </div>
-    </header>
-
-    <div class="card" id="mainCard" aria-live="polite">
-      <div class="loc" id="loc">Joylashuv aniqlanmagan</div>
-      <div class="hint" id="hint">GPS ruxsatini berish uchun yuqoridagi “GPS orqali aniqlash” tugmasini bosing va brauzer so‘roviga rozilik bering.</div>
-
-      <div id="error" class="error" style="display:none"></div>
-
-      <div class="times" id="times" style="display:none">
-        <!-- autogenerated -->
-      </div>
-
-      <div class="next-box" id="nextBox" style="display:none">
-        <div>
-          <div class="next-title" id="nextLabel">Keyingi namoz:</div>
-          <div class="countdown" id="countdown">-- soat -- daqiqa -- soniya</div>
+  <div class="container">
+    <div class="card" id="appCard">
+      <header>
+        <div class="brand">
+          <h1>Namoz vaqtlari — IMBA</h1>
+          <div class="subtitle">Lotin yozuvida · GPS asosida · Klassik Makkai azon</div>
         </div>
-        <div style="text-align:right">
-          <div class="hint" id="today">--</div>
-          <div class="hint" id="tz">UTC</div>
+        <div class="actions">
+          <div class="controls-row">
+            <button class="btn primary" id="gpsBtn">📍 GPS orqali aniqlash</button>
+            <button class="btn small" id="playAzanBtn">🔊 Azonni sinash</button>
+            <div style="width:10px"></div>
+            <div id="themeSwitch" class="toggle">
+              <div id="themeToggle" class="switch" role="switch" aria-checked="true"><div class="knob"></div></div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="main-grid">
+        <div class="left">
+          <div>
+            <div class="loc" id="locText">Joylashuv: aniqlanmadi</div>
+            <div class="hint" id="hintText">GPS ruxsatini bering yoki <button class="btn small" id="fallbackBtn">Toshkentni tanlash</button> tugmasini bosing.</div>
+          </div>
+
+          <div class="times-grid" id="timesGrid" aria-live="polite">
+            <!-- prayer cards injected here -->
+          </div>
+
+          <div class="next-panel" id="nextPanel" style="display:none">
+            <div class="next-left">
+              <div class="next-title" id="nextLabel">Keyingi namoz</div>
+              <div class="clock" id="nextTimeLabel">—</div>
+            </div>
+            <div class="countdown" id="countdown">— soat — daqiqa — soniya</div>
+          </div>
+        </div>
+
+        <div class="right">
+          <div class="card-small">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div class="hint">Bugun</div>
+                <div id="dateLabel" class="ptime" style="font-size:15px;color:var(--text)"></div>
+              </div>
+              <div style="text-align:right">
+                <div class="hint">Soat</div>
+                <div id="clockNow" class="ptime" style="font-size:15px;color:var(--text)"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-small" style="margin-top:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div class="hint">Azonni avtomatik chalish</div>
+                <div style="font-size:13px;color:var(--muted)">Brauzer ruxsatiga bog‘liq</div>
+              </div>
+              <div>
+                <div id="azanSwitch" class="switch" role="switch"><div class="knob"></div></div>
+              </div>
+            </div>
+            <div style="margin-top:8px" class="hint">Agar xohlasangiz, azonni qo‘lda ham chalishingiz mumkin.</div>
+          </div>
+
+          <div class="card-small" style="margin-top:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div class="hint">Manzil nomi</div>
+                <div id="placeName" class="ptime" style="color:var(--text)">—</div>
+              </div>
+            </div>
+            <div style="margin-top:8px" class="hint">Agar xato bo‘lsa — “Toshkentni tanlash” tugmasini bosing.</div>
+          </div>
         </div>
       </div>
 
-      <div id="permInstructions" style="display:none" class="hint">
-        Agar brauzer ruxsat bermasa: adres satridan qulf ikonkasini bosing → Site settings → Location → Allow, so‘ng sahifani yangilang (F5).
-      </div>
+      <div style="height:6px"></div>
+      <div id="errorBox" style="display:none;margin-top:10px;padding:10px;border-radius:10px;background:rgba(255,0,0,0.04);color:#ffd0d0"></div>
+      <footer>© IMBA Namoz · GPS + Lotin · Tashkent fallback mavjud</footer>
     </div>
-
-    <footer>Lotin yozuvida — namoz vaqtlarini hisoblash lokal klientda <span aria-hidden="true">🕋</span></footer>
   </div>
 
 <script>
-/* -------------- PrayTimes (compact) -------------- 
-   Adaptatsiya: mijozda ishlaydigan oddiy funksiyalar
-*/
+/* ========== Config & Utils ========== */
+const DEFAULT_AZAN = 'https://cdn.pixabay.com/download/audio/2021/08/09/audio_d6b0d0b5f1.mp3?filename=azan-1-6206.mp3' // classic-ish azan (public host used as default)
+const TASHKENT = {lat:41.2995, lon:69.2401, name: 'Toshkent, Oʻzbekiston'}
+
+const names = {fajr:'Bomdod', sunrise:'Quyosh', dhuhr:'Peshin', asr:'Asr', maghrib:'Shom', isha:'Xufton'}
+const order = ['fajr','sunrise','dhuhr','asr','maghrib','isha']
+
+// DOM
+const gpsBtn = document.getElementById('gpsBtn'), fallbackBtn = document.getElementById('fallbackBtn')
+const locText = document.getElementById('locText'), hintText = document.getElementById('hintText')
+const timesGrid = document.getElementById('timesGrid'), nextPanel = document.getElementById('nextPanel')
+const countdownEl = document.getElementById('countdown'), nextLabel = document.getElementById('nextLabel'), nextTimeLabel = document.getElementById('nextTimeLabel')
+const dateLabel = document.getElementById('dateLabel'), clockNow = document.getElementById('clockNow')
+const errorBox = document.getElementById('errorBox'), placeName = document.getElementById('placeName')
+const azanSwitch = document.getElementById('azanSwitch'), themeToggle = document.getElementById('themeToggle'), playAzanBtn = document.getElementById('playAzanBtn')
+
+// state
+let coords = null, timesToday = null, countdownTimer = null
+let azanEnabled = (localStorage.getItem('azanEnabled') === 'true') || false
+let theme = localStorage.getItem('theme') || 'dark'
+
+// audio
+const azanAudio = new Audio(DEFAULT_AZAN)
+azanAudio.preload = 'auto'
+azanAudio.volume = 0.9
+
+// Save initial UI states
+function setAzanUI(enabled){
+  azanEnabled = !!enabled
+  localStorage.setItem('azanEnabled', azanEnabled)
+  if(azanEnabled) azanSwitch.classList.add('on'), azanSwitch.querySelector('.knob')?.style && (azanSwitch.querySelector('.knob').style.left = '22px')
+  else azanSwitch.classList.remove('on'), azanSwitch.querySelector('.knob')?.style && (azanSwitch.querySelector('.knob').style.left = '4px')
+}
+function setTheme(t){
+  theme = t
+  localStorage.setItem('theme', t)
+  if(t === 'light') document.documentElement.setAttribute('data-theme','light')
+  else document.documentElement.removeAttribute('data-theme')
+  // update theme toggle UI
+  if(t === 'light'){ themeToggle.classList.remove('on'); themeToggle.querySelector('.knob').style.left='4px' }
+  else { themeToggle.classList.add('on'); themeToggle.querySelector('.knob').style.left='22px' }
+}
+
+// init
+setAzanUI(azanEnabled)
+setTheme(theme)
+
+// theme toggle
+themeToggle.addEventListener('click', ()=>{
+  setTheme(theme === 'dark' ? 'light' : 'dark')
+})
+
+// azan toggle
+azanSwitch.addEventListener('click', ()=>{
+  setAzanUI(!azanEnabled)
+})
+
+// play azan button (user-initiated)
+playAzanBtn.addEventListener('click', async ()=>{
+  try{
+    await azanAudio.play()
+  }catch(e){
+    showError('Audio chalib bo‘lmadi — brauzer avtomatik ijroni cheklashi mumkin. Iltimos sahifada biror joyni bosib, so‘ng qayta urunib ko‘ring.')
+  }
+})
+
+function showError(msg){
+  errorBox.style.display = 'block'
+  errorBox.textContent = msg
+}
+function clearError(){
+  errorBox.style.display = 'none'
+  errorBox.textContent = ''
+}
+
+/* ========== PrayTimes (compact) ========== */
 (function(){
-  // helper funcs
   function toRad(d){return d*Math.PI/180}
   function toDeg(d){return d*180/Math.PI}
   function fixAngle(a){return a - 360*Math.floor(a/360)}
-  function julianDate(y,m,d){
-    if(m<=2){y-=1;m+=12}
-    var A=Math.floor(y/100), B=2-A+Math.floor(A/4)
-    return Math.floor(365.25*(y+4716))+Math.floor(30.6001*(m+1))+d+B-1524.5
-  }
-  function sunPos(jd){
-    var D = jd - 2451545.0
-    var g = fixAngle(357.529 + 0.98560028*D)
-    var q = fixAngle(280.459 + 0.98564736*D)
-    var L = fixAngle(q + 1.915*Math.sin(toRad(g)) + 0.020*Math.sin(toRad(2*g)))
-    var e = 23.439 - 0.00000036*D
-    var RA = toDeg(Math.atan2(Math.cos(toRad(e))*Math.sin(toRad(L)), Math.cos(toRad(L))))/15
-    var decl = toDeg(Math.asin(Math.sin(toRad(e))*Math.sin(toRad(L))))
-    var eqt = q/15 - RA
-    return {decl:decl, eqt:eqt}
-  }
-  function hourAngle(h,lat,decl){
-    var t = (Math.sin(toRad(h)) - Math.sin(toRad(lat))*Math.sin(toRad(decl))) / (Math.cos(toRad(lat))*Math.cos(toRad(decl)))
-    t = Math.max(-1, Math.min(1, t))
-    return toDeg(Math.acos(t)) / 15
-  }
-  function toTimeStr(t){
-    t = (t + 24) % 24
-    var h = Math.floor(t)
-    var m = Math.floor((t-h)*60 + 0.5)
-    if(m>=60){ h=(h+1)%24; m=0 }
-    return (h<10?'0'+h:h) + ':' + (m<10?'0'+m:m)
-  }
-
-  window.Pray = {
-    getTimes: function(date, lat, lng, zone){
-      var y = date.getFullYear(), m = date.getMonth()+1, d = date.getDate()
-      var jd = julianDate(y,m,d)
-      var sp = sunPos(jd)
-      var noon = 12 - sp.eqt - lng/15 + zone
+  function jd(y,m,d){ if(m<=2){y-=1;m+=12} var A=Math.floor(y/100), B=2-A+Math.floor(A/4); return Math.floor(365.25*(y+4716))+Math.floor(30.6001*(m+1))+d+B-1524.5 }
+  function sunPos(jd_){ var D=jd_-2451545.0; var g=fixAngle(357.529+0.98560028*D); var q=fixAngle(280.459+0.98564736*D); var L=fixAngle(q+1.915*Math.sin(toRad(g))+0.020*Math.sin(toRad(2*g))); var e=23.439-0.00000036*D; var RA=toDeg(Math.atan2(Math.cos(toRad(e))*Math.sin(toRad(L)),Math.cos(toRad(L))))/15; var decl=toDeg(Math.asin(Math.sin(toRad(e))*Math.sin(toRad(L)))); var eqt=q/15-RA; return {decl:decl, eqt:eqt} }
+  function hourAngle(h,lat,decl){ var t=(Math.sin(toRad(h))-Math.sin(toRad(lat))*Math.sin(toRad(decl)))/(Math.cos(toRad(lat))*Math.cos(toRad(decl))); t=Math.max(-1,Math.min(1,t)); return toDeg(Math.acos(t))/15 }
+  function toTimeStr(t){ t=(t+24)%24; var h=Math.floor(t); var m=Math.floor((t-h)*60+0.5); if(m>=60){h=(h+1)%24;m=0} return (h<10?'0'+h:h)+':'+(m<10?'0'+m:m) }
+  window.PR = {
+    times: function(dt, lat, lon){
+      var y=dt.getFullYear(), m=dt.getMonth()+1, d=dt.getDate()
+      var J=jd(y,m,d), sp=sunPos(J)
+      var zone = -dt.getTimezoneOffset()/60
+      var noon = 12 - sp.eqt - lon/15 + zone
       var fajrH = hourAngle(-18, lat, sp.decl)
       var sunriseH = hourAngle(-0.833, lat, sp.decl)
-      var asrH = (function(){ // Hanafi/Standard? Using standard shadow factor ~1 (approx) => simplified asr: use decl and lat
-        // approximate asr by formula: arctan(1 + tan(|lat - decl|)) simplified => approximate 1.5 hours shift
-        return 1.0 // we'll use simple approach (asr = noon + 1.0) and correct using hourAngle with angle = atan(1+tan...)
-      })()
-      var sunsetH = sunriseH
+      var asrH = 1.0 // simplified asr
       var fajr = noon - fajrH
       var sunrise = noon - sunriseH
       var dhuhr = noon
-      var asr = noon + 1.0 // simplified; acceptable for general use
-      var maghrib = noon + sunsetH
+      var asr = noon + asrH
+      var maghrib = noon + sunriseH
       var isha = noon + hourAngle(-17, lat, sp.decl)
       return {
         fajr: toTimeStr(fajr),
@@ -180,180 +273,169 @@
   }
 })();
 
-/* -------------- App logic -------------- */
-const tryBtn = document.getElementById('tryBtn')
-const howBtn = document.getElementById('howBtn')
-const locEl = document.getElementById('loc')
-const timesEl = document.getElementById('times')
-const nextBox = document.getElementById('nextBox')
-const countdownEl = document.getElementById('countdown')
-const todayEl = document.getElementById('today')
-const tzEl = document.getElementById('tz')
-const hintEl = document.getElementById('hint')
-const errorEl = document.getElementById('error')
-const permInstructions = document.getElementById('permInstructions')
-
-let countdownTimer = null
-let currentTimes = null
-let currentCoords = null
-
-// Uzbek labels (lotin)
-const names = {fajr:'Bomdod', sunrise:'Quyosh', dhuhr:'Peshin', asr:'Asr', maghrib:'Shom', isha:'Xufton'}
-const order = ['fajr','sunrise','dhuhr','asr','maghrib','isha']
-
-function showError(msg){
-  errorEl.style.display = 'block'
-  errorEl.textContent = msg
-}
-function clearError(){
-  errorEl.style.display = 'none'
-  errorEl.textContent = ''
+/* ========== Rendering ========== */
+function buildCards(times){
+  timesGrid.innerHTML = ''
+  const gradients = [
+    ['linear-gradient(135deg,#1f3b8b,#00d4b6)','☀️'],
+    ['linear-gradient(135deg,#7b2ff7,#ff6fd8)','🌅'],
+    ['linear-gradient(135deg,#ff9a00,#ff6a6a)','🌞'],
+    ['linear-gradient(135deg,#00c6ff,#0072ff)','🌙'],
+    ['linear-gradient(135deg,#12c2e9,#c471ed)','🌇'],
+    ['linear-gradient(135deg,#00d4b6,#0077b6)','🕌']
+  ]
+  order.forEach((k,i)=>{
+    const card = document.createElement('div'); card.className = 'prayer-card'
+    const ic = document.createElement('div'); ic.className='icon'; ic.style.background = gradients[i % gradients.length][0]; ic.innerHTML = `<span style="font-size:18px">${gradients[i%gradients.length][1]}</span>`
+    const txt = document.createElement('div'); txt.style.flex='1'
+    const pname = document.createElement('div'); pname.className='pname'; pname.textContent = names[k]
+    const ptime = document.createElement('div'); ptime.className='ptime ptime-small'; ptime.style.fontSize='18px'; ptime.textContent = times[k]
+    txt.appendChild(pname); txt.appendChild(ptime)
+    card.appendChild(ic); card.appendChild(txt)
+    timesGrid.appendChild(card)
+  })
+  timesGrid.style.display = 'grid'
+  nextPanel.style.display = 'flex'
 }
 
-function formatDateLong(d){
-  return d.toLocaleDateString('uz-UZ', {weekday:'long', day:'numeric', month:'long', year:'numeric'})
+function startClock(){
+  setInterval(()=>{
+    const now = new Date(); clockNow.textContent = now.toLocaleTimeString('uz-UZ',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); dateLabel.textContent = now.toLocaleDateString('uz-UZ',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
+  }, 1000)
 }
 
-function renderTimes(times){
-  timesEl.innerHTML = ''
-  for(const k of order){
-    const div = document.createElement('div')
-    div.className = 'time-row'
-    div.innerHTML = `<div class="label">${names[k]}</div><div class="value">${times[k]}</div>`
-    timesEl.appendChild(div)
-  }
-  timesEl.style.display = 'grid'
-  nextBox.style.display = 'flex'
-  todayEl.textContent = formatDateLong(new Date())
-  tzEl.textContent = 'UTC' + (new Date().getTimezoneOffset()===0?'+0': (-new Date().getTimezoneOffset()/60>0? '+'+(-new Date().getTimezoneOffset()/60) : (-new Date().getTimezoneOffset()/60)) )
-}
-
+/* ========== Countdown to next prayer ========== */
 function startCountdown(times){
   if(countdownTimer) clearInterval(countdownTimer)
-  function computeNext(){
+  function findNext(){
     const now = new Date()
-    let nextKey = null
-    let target = null
     for(const k of order){
       const [hh,mm] = times[k].split(':').map(Number)
       const t = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0)
-      if(t > now){
-        nextKey = k
-        target = t
-        break
-      }
+      if(t > now) return {key:k, target:t}
     }
-    if(!nextKey){
-      // next day fajr
-      const [hh,mm] = times['fajr'].split(':').map(Number)
-      target = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1, hh, mm, 0)
-      nextKey = 'fajr'
-    }
-    return {nextKey, target}
+    // next day fajr
+    const [hh,mm] = times['fajr'].split(':').map(Number)
+    const t = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1, hh, mm, 0)
+    return {key:'fajr', target:t}
   }
 
-  function update(){
-    const {nextKey, target} = computeNext()
+  function tick(){
+    const {key, target} = findNext()
     const now = new Date()
-    let diff = Math.max(0, Math.floor((target - now)/1000)) // seconds
+    let diff = Math.max(0, Math.floor((target - now)/1000))
     const hrs = Math.floor(diff/3600); diff -= hrs*3600
     const mins = Math.floor(diff/60); const secs = diff % 60
-    countdownEl.textContent = `${names[nextKey]}gacha: ${hrs} soat ${mins} daqiqa ${secs} soniya`
-    if((target - now) <= 0){
-      // recompute times after prayer (to avoid stale)
-      if(currentCoords){
-        computeAndRender(currentCoords.lat, currentCoords.lon)
+    countdownEl.textContent = `${names[key]}gacha: ${hrs} soat ${mins} daqiqa ${secs} soniya`
+    nextTimeLabel.textContent = `${names[key]} — ${target.toLocaleTimeString('uz-UZ',{hour:'2-digit',minute:'2-digit'})}`
+    if(diff <= 0){
+      // time reached: play azan if enabled
+      if(azanEnabled){
+        // user gesture required: try play, catch if blocked
+        azanAudio.play().catch(e => {
+          console.warn('Azan autoplay blocked:', e)
+        })
       }
+      // recompute times (in case of day change)
+      if(coords) computeAndRender(coords.lat, coords.lon)
     }
   }
-  update()
-  countdownTimer = setInterval(update, 1000)
+  tick()
+  countdownTimer = setInterval(tick, 1000)
 }
 
-async function computeAndRender(lat, lon){
-  try{
-    clearError()
-    currentCoords = {lat, lon}
-    const zone = - new Date().getTimezoneOffset()/60
-    const now = new Date()
-    const times = window.Pray.getTimes(now, lat, lon, zone)
-    currentTimes = times
-    locEl.textContent = `Kenglik: ${lat.toFixed(4)}, Uzunlik: ${lon.toFixed(4)}`
-    renderTimes(times)
-    startCountdown(times)
-  }catch(e){
-    showError('Vaqtlarni hisoblashda xato: ' + (e.message || e))
-  }
-}
-
-async function reverseGeocode(lat, lon){
-  // soft attempt to show city name, but not required (no external mandatory)
-  try{
-    const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=uz`)
-    if(!res.ok) throw new Error('no')
-    const j = await res.json()
-    if(j.city || j.locality) locEl.textContent = (j.city || j.locality) + ` (${lat.toFixed(4)}, ${lon.toFixed(4)})`
-  }catch(_){}
-}
-
-// GPS attempt with robust handling
-async function requestGPS(){
-  clearError()
-  hintEl.textContent = 'GPS so‘rovi yuborildi — Iltimos brauzer ruxsat so‘roviga rozilik bering.'
-  permInstructions.style.display = 'none'
-
-  // Check Permissions API when available
+/* ========== Geolocation handling ========== */
+async function tryGeolocation(){
+  clearError(); hintText.textContent = 'GPS so‘rovi yuborildi — brauzer ruxsat so‘roviga rozilik bering...'
+  // permissions API check
   if(navigator.permissions){
     try{
       const p = await navigator.permissions.query({name:'geolocation'})
       if(p.state === 'denied'){
-        showError('Joylashuv ruxsat berilmagan. Iltimos sayt sozlamalaridan Location uchun Allow qiling.')
-        permInstructions.style.display = 'block'
+        showError('Joylashuvga ruxsat berilmagan — brauzer sozlamalaridan Location / Joylashuvni Allow qiling.')
         return
       }
-      // if prompt or granted, proceed to getCurrentPosition
-    }catch(e){
-      // continue to ask
-    }
+    }catch(e){ /* ignore */ }
   }
 
-  // Try getCurrentPosition with options
-  const opts = {enableHighAccuracy: true, timeout: 12000, maximumAge: 60000}
-  navigator.geolocation.getCurrentPosition(
-    async pos => {
-      const lat = pos.coords.latitude
-      const lon = pos.coords.longitude
-      await reverseGeocode(lat, lon)
-      await computeAndRender(lat, lon)
-    },
-    err => {
-      // Interpret common errors
-      let msg = ''
-      switch(err.code){
-        case 1: msg = 'Foydalanuvchi ruxsat bermadi (Permission denied). Brauzer sozlamalaridan Location ni yoqing.'; break;
-        case 2: msg = 'Joylashuv topilmadi (Position unavailable). GPS/Internet yoqilganligini tekshiring.'; break;
-        case 3: msg = 'So‘rov vaqt tugadi (Timeout). Internet va GPS signalini tekshiring.'; break;
-        default: msg = 'Geolokatsiya xatosi: ' + (err.message || err.code)
-      }
-      showError(msg)
-      permInstructions.style.display = 'block'
-    },
-    opts
-  )
+  if(!navigator.geolocation){
+    showError('Brauzeringizda geolokatsiya mavjud emas.')
+    return
+  }
+
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const lat = pos.coords.latitude, lon = pos.coords.longitude
+    coords = {lat, lon}
+    await onGotCoords(lat, lon)
+  }, err => {
+    let message = ''
+    switch(err.code){
+      case 1: message = 'Foydalanuvchi ruxsat bermadi (Permission denied). Brauzer sozlamalari orqali Location ruxsatini yoqing.'; break;
+      case 2: message = 'Joylashuv topilmadi (Position unavailable). GPS yoki internet signalini tekshiring.'; break;
+      case 3: message = 'So‘rov vaqt tugadi (Timeout). Internet va GPS signalini tekshiring.'; break;
+      default: message = 'Geolokatsiya xatosi: ' + (err.message || err.code)
+    }
+    showError(message)
+  }, {enableHighAccuracy:true, timeout:15000, maximumAge:60000})
 }
 
-// Buttons
-tryBtn.addEventListener('click', ()=>{ requestGPS() })
-howBtn.addEventListener('click', ()=>{
-  permInstructions.style.display = 'block'
-  window.scrollTo({top:0,behavior:'smooth'})
+async function onGotCoords(lat, lon){
+  clearError()
+  // try reverse geocode for place name (best-effort)
+  placeName.textContent = `${lat.toFixed(4)}, ${lon.toFixed(4)}`
+  try{
+    const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=uz`)
+    if(res.ok){
+      const j = await res.json()
+      placeName.textContent = j.city || j.locality || `${lat.toFixed(4)}, ${lon.toFixed(4)}`
+    }
+  }catch(e){ /* ignore */ }
+
+  locText.textContent = `Kenglik: ${lat.toFixed(4)}, Uzunlik: ${lon.toFixed(4)}`
+  hintText.textContent = 'Vaqtlar hisoblanmoqda...'
+  // compute times
+  try{
+    const t = PR.times(new Date(), lat, lon)
+    timesToday = t
+    buildCards(t)
+    startCountdown(t)
+    hintText.textContent = 'Namoz vaqtlari GPS asosida hisoblandi (agar xato bo‘lsa — Toshkentni tanlang).'
+  }catch(e){
+    showError('Vaqtlarni hisoblashda xato: ' + (e.message||e))
+  }
+}
+
+/* ========== Fallback & UI wiring ========== */
+gpsBtn.addEventListener('click', ()=>{ tryGeolocation() })
+fallbackBtn.addEventListener('click', async ()=>{
+  coords = {lat: TASHKENT.lat, lon: TASHKENT.lon}
+  placeName.textContent = TASHKENT.name
+  locText.textContent = `Kenglik: ${coords.lat.toFixed(4)}, Uzunlik: ${coords.lon.toFixed(4)} (Toshkent fallback)`
+  hintText.textContent = 'Toshkent bo‘yicha vaqtlar ko‘rsatildi.'
+  const t = PR.times(new Date(), coords.lat, coords.lon)
+  timesToday = t
+  buildCards(t)
+  startCountdown(t)
 })
 
-// Try automatic on load (but wait a moment)
+/* try auto-on-load (attempt: will prompt permission) */
 window.addEventListener('load', ()=>{
-  // Slight delay to let browser UI settle
-  setTimeout(()=>{ requestGPS() }, 700)
+  // small delay, then attempt automatic (user can cancel)
+  setTimeout(()=>{ tryGeolocation() }, 700)
+  startClock()
 })
+
+/* theme / azan UI init */
+themeToggle.classList.toggle('on', theme !== 'light')
+if(theme !== 'light') themeToggle.querySelector('.knob').style.left='22px'; else themeToggle.querySelector('.knob').style.left='4px'
+azanSwitch.classList.toggle('on', azanEnabled)
+if(azanEnabled) azanSwitch.querySelector('.knob').style.left='22px'; else azanSwitch.querySelector('.knob').style.left='4px'
+
+/* play small test sound on first user gesture if azan enabled? no — leave manual */
+
+/* error helper */
+function showError(msg){ errorBox.style.display='block'; errorBox.textContent = msg }
+function clearError(){ errorBox.style.display='none'; errorBox.textContent = '' }
 
 </script>
 </body>
