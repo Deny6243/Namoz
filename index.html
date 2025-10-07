@@ -1,145 +1,216 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="uz">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Намоз вақтлари</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Namoz Vaqtlari</title>
   <style>
-    :root{
-      --bg:#eef2f7;
-      --card:#ffffff;
-      --text:#0b1623;
-      --muted:#6b7280;
-      --accent:#007bff;
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      transition: background 1s ease;
+      color: #fff;
+      overflow: hidden;
     }
-    [data-theme="dark"]{
-      --bg:#0b1020;
-      --card:#131b2e;
-      --text:#e6eef8;
-      --muted:#9aa6bf;
-      --accent:#00aaff;
+
+    /* Cunami rejimi (dinamik fon) */
+    .wave {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle at 50% 50%, #003366, #000);
+      animation: waveAnim 10s infinite linear;
+      z-index: -1;
+      opacity: 0.5;
     }
-    *{box-sizing:border-box;font-family:'Inter', 'Segoe UI', Arial, sans-serif;transition:all .3s ease}
-    body{margin:0;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-    .app{width:100%;max-width:920px}
-    header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:20px}
-    h1{font-size:24px;font-weight:700;margin:0;color:var(--accent)}
-    .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    button,select{padding:8px 12px;border-radius:8px;border:1px solid rgba(0,0,0,0.08);background:var(--card);cursor:pointer;font-weight:500}
-    button:hover,select:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
-    .card{background:var(--card);padding:20px;border-radius:16px;box-shadow:0 8px 25px rgba(0,0,0,0.08)}
-    .location{display:flex;gap:8px;align-items:center;font-weight:500;color:var(--accent)}
-    .times{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:16px}
-    .time-row{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:10px;background:rgba(0,0,0,0.03)}
-    .time-row:hover{background:rgba(0,0,0,0.07)}
-    .next{font-weight:700;font-size:20px;color:var(--accent)}
-    .muted{color:var(--muted);font-size:14px}
-    footer{margin-top:16px;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted)}
-    .calendar{margin-top:18px}
-    table{width:100%;border-collapse:collapse;font-size:13px}
-    th,td{padding:6px;text-align:center;border:1px solid rgba(0,0,0,0.05)}
-    th{background:rgba(0,0,0,0.05)}
-    td div:first-child{font-weight:600;color:var(--accent)}
-    .theme-toggle,.lang-toggle{cursor:pointer;padding:6px 10px;border-radius:8px;background:var(--accent);color:#fff;border:none}
-    @media(max-width:640px){header{flex-direction:column;align-items:flex-start}}
+
+    @keyframes waveAnim {
+      0% { transform: translateX(0) translateY(0) rotate(0deg); }
+      50% { transform: translateX(-25%) translateY(-10%) rotate(180deg); }
+      100% { transform: translateX(0) translateY(0) rotate(360deg); }
+    }
+
+    h1 {
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
+
+    .city {
+      font-size: 1.2em;
+      margin-bottom: 20px;
+    }
+
+    .prayers {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 20px;
+      padding: 20px 40px;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    }
+
+    .prayer-time {
+      font-size: 1.1em;
+      margin: 5px 0;
+    }
+
+    .countdown {
+      margin-top: 20px;
+      font-size: 1.3em;
+      font-weight: bold;
+      color: #00ffcc;
+    }
+
+    .toggle-dark {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 8px;
+      background-color: #222;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .toggle-dark:hover {
+      background-color: #00bfa6;
+    }
+
+    .light-mode {
+      background: linear-gradient(to bottom, #87cefa, #f0f8ff);
+      color: #000;
+    }
   </style>
 </head>
 <body>
-  <div class="app">
-    <header>
-      <div>
-        <h1>Намоз вақтлари</h1>
-        <div class="muted">GPS ёрдамида аниқланади ёки қўл билан киритиш мумкин</div>
-      </div>
-      <div class="controls">
-        <select id="methodSelect">
-          <option value="MWL">Muslim World League</option>
-          <option value="ISNA">ISNA</option>
-          <option value="Egypt">Egyptian Authority</option>
-          <option value="Makkah">Umm al-Qura (Makka)</option>
-          <option value="Karachi">Karachi University</option>
-          <option value="Tehran">Tehran Institute</option>
-        </select>
-        <button id="gpsBtn">📍 GPS орқали</button>
-        <button id="manualBtn">✏️ Қўл билан</button>
-        <button class="theme-toggle" id="themeBtn">🌙</button>
-      </div>
-    </header>
+  <div class="wave"></div>
+  <button class="toggle-dark">🌙 Tungi rejim</button>
+  <h1>Namoz vaqtlari</h1>
+  <div class="city" id="city">Joylashuv aniqlanmoqda...</div>
+  <div class="prayers" id="prayerTimes"></div>
+  <div class="countdown" id="countdown"></div>
 
-    <div class="card">
-      <div class="location" id="locInfo">Жойлашув аниқланмоқда...</div>
-      <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <div class="next" id="nextPrayer">Келаси намоз:</div>
-          <div class="muted" id="countdown">...</div>
-        </div>
-        <div style="text-align:right">
-          <div class="muted" id="todayDate"></div>
-          <div class="muted" id="timezone"></div>
-        </div>
-      </div>
+  <script src="https://cdn.jsdelivr.net/npm/praytimes@2.3.2/praytimes.js"></script>
+  <script>
+    const prayTimes = new PrayTimes('MWL');
+    const cityElem = document.getElementById('city');
+    const prayerContainer = document.getElementById('prayerTimes');
+    const countdownElem = document.getElementById('countdown');
+    const toggleBtn = document.querySelector('.toggle-dark');
 
-      <div class="times" id="timesList"></div>
+    let darkMode = true;
 
-      <div class="calendar card" id="calendar">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div class="muted" id="monthLabel"></div>
-          <div>
-            <button id="prevMonth">◀</button>
-            <button id="nextMonth">▶</button>
-          </div>
-        </div>
-        <div id="monthTable" style="margin-top:8px"></div>
-      </div>
+    toggleBtn.addEventListener('click', () => {
+      darkMode = !darkMode;
+      document.body.classList.toggle('light-mode', !darkMode);
+      toggleBtn.textContent = darkMode ? '🌙 Tungi rejim' : '☀️ Kunduzgi rejim';
+    });
 
-      <footer>
-        <div>🇺🇿 Лойиҳа: Намоз вақтлари — GPS асосида</div>
-        <div>Азон овозини ёқиш <input type="checkbox" id="azanChk"></div>
-      </footer>
-    </div>
+    function getLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(showPosition, () => {
+          cityElem.textContent = 'Joylashuv olinmadi';
+        });
+      } else {
+        cityElem.textContent = 'Geolokatsiya mavjud emas';
+      }
+    }
 
-    <div id="manualModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);align-items:center;justify-content:center">
-      <div style="background:var(--card);padding:18px;border-radius:12px;max-width:420px;width:100%">
-        <h3>Координаталарни киритиш</h3>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <input id="latInput" placeholder="Кенглик (lat)" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.06)">
-          <input id="lonInput" placeholder="Узунлик (lon)" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.06)">
-        </div>
-        <div style="margin-top:8px;display:flex;justify-content:flex-end;gap:8px">
-          <button id="cancelManual">Бекор қилиш</button>
-          <button id="saveManual">Сақлаш</button>
-        </div>
-      </div>
-    </div>
-  </div>
+    async function showPosition(position) {
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
 
-<script>
-// Намоз вақтларини ҳисоблаш ва интерфейс яратиш (қисқартирилган версия)
-var PrayTimes=function(){var methodParams={MWL:{fajr:18,isha:17},ISNA:{fajr:15,isha:15},Egypt:{fajr:19.5,isha:17.5},Makkah:{fajr:18.5,isha:'90min'},Karachi:{fajr:18,isha:18},Tehran:{fajr:17.7,isha:14}};function toRad(d){return d*Math.PI/180}function toDeg(d){return d*180/Math.PI}function fix(a){return a-360*Math.floor(a/360)}function jd(y,m,d){if(m<=2){y-=1;m+=12}var A=Math.floor(y/100);var B=2-A+Math.floor(A/4);return Math.floor(365.25*(y+4716))+Math.floor(30.6001*(m+1))+d+B-1524.5}function sun(jd_){var D=jd_-2451545.0;var g=fix(357.529+0.98560028*D);var q=fix(280.459+0.98564736*D);var L=fix(q+1.915*Math.sin(toRad(g))+0.020*Math.sin(toRad(2*g)));var e=23.439-0.00000036*D;var RA=toDeg(Math.atan2(Math.cos(toRad(e))*Math.sin(toRad(L)),Math.cos(toRad(L))))/15;var decl=toDeg(Math.asin(Math.sin(toRad(e))*Math.sin(toRad(L))));var eqt=q/15-RA;return{decl:decl,eqt:eqt}}function hAngle(h,lat,dec){var t=(Math.sin(toRad(h))-Math.sin(toRad(lat))*Math.sin(toRad(dec)))/(Math.cos(toRad(lat))*Math.cos(toRad(dec)));t=Math.min(Math.max(t,-1),1);return toDeg(Math.acos(t))/15}function compute(date,lat,lng,zone,method){var y=date.getFullYear(),m=date.getMonth()+1,d=date.getDate();var JD=jd(y,m,d);var D=sun(JD);var noon=12-D.eqt-lng/15+zone;var p=methodParams[method]||methodParams.MWL;var fajrH=hAngle(-p.fajr,lat,D.decl);var ishaH=(typeof p.isha==='string')?parseFloat(p.isha)/60:hAngle(-p.isha,lat,D.decl);var sunriseH=hAngle(-0.833,lat,D.decl);return{fajr:noon-fajrH,sunrise:noon-sunriseH,dhuhr:noon,asr:noon+1.5,sunset:noon+sunriseH,maghrib:noon+sunriseH,isha:(typeof p.isha==='string')?(noon+sunriseH+parseFloat(p.isha)/60):noon+ishaH}}function toTime(t){t=(t+24)%24;var h=Math.floor(t),m=Math.floor((t-h)*60+0.5);if(m>=60){h++;m=0}return(h<10?'0'+h:h)+":"+(m<10?'0'+m:m)}return{get:function(d,c,z,m){var r=compute(d,c.lat,c.lng,z,m),o={};for(var k in r)o[k]=toTime(r[k]);return o}}}();
+      try {
+        const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=uz`);
+        const data = await res.json();
+        cityElem.textContent = data.city || data.locality || 'Noma’lum joy';
+      } catch (e) {
+        cityElem.textContent = 'Joy aniqlanmoqda...';
+      }
 
-const el={loc:document.getElementById('locInfo'),times:document.getElementById('timesList'),gps:document.getElementById('gpsBtn'),manual:document.getElementById('manualBtn'),lat:document.getElementById('latInput'),lon:document.getElementById('lonInput'),save:document.getElementById('saveManual'),cancel:document.getElementById('cancelManual'),modal:document.getElementById('manualModal'),next:document.getElementById('nextPrayer'),count:document.getElementById('countdown'),date:document.getElementById('todayDate'),zone:document.getElementById('timezone'),method:document.getElementById('methodSelect'),monthLabel:document.getElementById('monthLabel'),monthTable:document.getElementById('monthTable'),prevMonth:document.getElementById('prevMonth'),nextMonth:document.getElementById('nextMonth'),theme:document.getElementById('themeBtn'),azan:document.getElementById('azanChk')}
+      updatePrayerTimes(lat, lon);
+    }
 
-const state={lat:null,lng:null,zone:0,method:'MWL',monthOffset:0,azan:false}
+    function updatePrayerTimes(lat, lon) {
+      const date = new Date();
+      const times = prayTimes.getTimes(date, [lat, lon], date.getTimezoneOffset() / -60);
+      prayerContainer.innerHTML = '';
+      const names = {
+        fajr: 'Bomdod',
+        sunrise: 'Quyosh chiqishi',
+        dhuhr: 'Peshin',
+        asr: 'Asr',
+        maghrib: 'Shom',
+        isha: 'Xufton'
+      };
 
-el.theme.onclick=()=>{document.documentElement.toggleAttribute('data-theme','dark')}
+      for (const key in names) {
+        const div = document.createElement('div');
+        div.classList.add('prayer-time');
+        div.textContent = `${names[key]}: ${times[key]}`;
+        prayerContainer.appendChild(div);
+      }
 
-document.getElementById('methodSelect').onchange=e=>{state.method=e.target.value;render()}
-el.azan.onchange=e=>state.azan=e.target.checked
+      startCountdown(times);
+    }
 
-el.gps.onclick=()=>{el.loc.textContent='GPS аниқланмоқда...';navigator.geolocation.getCurrentPosition(p=>{state.lat=p.coords.latitude;state.lng=p.coords.longitude;state.zone=-new Date().getTimezoneOffset()/60;render()},()=>el.loc.textContent='GPS аниқланмади')}
+    function startCountdown(times) {
+      const now = new Date();
+      const keys = ['fajr','sunrise','dhuhr','asr','maghrib','isha'];
+      let nextPrayer = null;
+      let nextTime = null;
 
-el.manual.onclick=()=>el.modal.style.display='flex'
-el.cancel.onclick=()=>el.modal.style.display='none'
-el.save.onclick=()=>{const a=parseFloat(el.lat.value),b=parseFloat(el.lon.value);if(!isNaN(a)&&!isNaN(b)){state.lat=a;state.lng=b;state.zone=-new Date().getTimezoneOffset()/60;el.modal.style.display='none';render()}}
+      for (const key of keys) {
+        const [h, m] = times[key].split(':').map(Number);
+        const prayerDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+        if (prayerDate > now) {
+          nextPrayer = key;
+          nextTime = prayerDate;
+          break;
+        }
+      }
+      if (!nextPrayer) {
+        const [h, m] = times['fajr'].split(':').map(Number);
+        nextPrayer = 'fajr';
+        nextTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, h, m);
+      }
 
-function render(){if(!state.lat)return;const d=new Date(),times=PrayTimes.get(d,{lat:state.lat,lng:state.lng},state.zone,state.method);const order=['fajr','sunrise','dhuhr','asr','maghrib','isha'];const names={fajr:'Бомдод',sunrise:'Қуёш чиқиши',dhuhr:'Пешин',asr:'Аср',maghrib:'Шом',isha:'Хуфтон'};el.loc.textContent=`Кенглик: ${state.lat.toFixed(3)}, Узунлик: ${state.lng.toFixed(3)}`;el.date.textContent=d.toLocaleDateString('uz-UZ',{weekday:'long',day:'numeric',month:'long',year:'numeric'});el.zone.textContent='UTC'+(state.zone>=0?'+':'')+state.zone;el.times.innerHTML='';order.forEach(k=>{const div=document.createElement('div');div.className='time-row';div.innerHTML=`<div>${names[k]}</div><div>${times[k]}</div>`;el.times.appendChild(div)});renderCalendar(d);}
+      const nameMap = {
+        fajr: 'Bomdod',
+        sunrise: 'Quyosh chiqishi',
+        dhuhr: 'Peshin',
+        asr: 'Asr',
+        maghrib: 'Shom',
+        isha: 'Xufton'
+      };
 
-function renderCalendar(base){const d=new Date(base.getFullYear(),base.getMonth()+state.monthOffset,1);const days=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();el.monthLabel.textContent=d.toLocaleString('uz-UZ',{month:'long',year:'numeric'});let html='<table><thead><tr><th>Ду</th><th>Се</th><th>Чо</th><th>Па</th><th>Жу</th><th>Ша</th><th>Як</th></tr></thead><tbody><tr>';let start=new Date(d.getFullYear(),d.getMonth(),1).getDay();start=(start==0?6:start-1);for(let i=0;i<start;i++)html+='<td></td>';for(let day=1;day<=days;day++){const cur=new Date(d.getFullYear(),d.getMonth(),day);const t=PrayTimes.get(cur,{lat:state.lat,lng:state.lng},state.zone,state.method);if((start+day-1)%7==0&&day!=1)html+='</tr><tr>';html+=`<td><div>${day}</div><div>${t.fajr} | ${t.maghrib}</div></td>`;}html+='</tr></tbody></table>';el.monthTable.innerHTML=html;}
+      function updateCountdown() {
+        const diff = nextTime - new Date();
+        const hrs = Math.floor(diff / 3600000);
+        const mins = Math.floor((diff % 3600000) / 60000);
+        const secs = Math.floor((diff % 60000) / 1000);
+        countdownElem.textContent = `${nameMap[nextPrayer]} namozigacha: ${hrs} soat ${mins} daqiqa ${secs} soniya`;
+        if (diff <= 0) {
+          clearInterval(timer);
+          countdownElem.textContent = 'Namoz vaqti keldi!';
+        }
+      }
+      updateCountdown();
+      const timer = setInterval(updateCountdown, 1000);
+    }
 
-el.prevMonth.onclick=()=>{state.monthOffset--;render()}
-el.nextMonth.onclick=()=>{state.monthOffset++;render()}
-
-navigator.geolocation.getCurrentPosition(p=>{state.lat=p.coords.latitude;state.lng=p.coords.longitude;state.zone=-new Date().getTimezoneOffset()/60;render()},()=>el.loc.textContent='Жой аниқланмади')
-</script>
+    getLocation();
+  </script>
 </body>
 </html>
